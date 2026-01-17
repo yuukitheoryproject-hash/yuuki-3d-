@@ -1,193 +1,124 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Yuuki Theory – Interference Field Visualizer</title>
-
-<!--
-Yuuki Theory – Interference Field Visualizer
-© 2026 Yuuki Theory
-ORCID: 0009-0003-5736-5297
-License: CC BY-NC 4.0
--->
-
-<style>
-  body {
-    margin: 0;
-    background: #05070a;
-    color: #e0e0e0;
-    font-family: system-ui, sans-serif;
-    overflow: hidden;
-  }
-  #ui {
-    position: fixed;
-    top: 10px;
-    left: 10px;
-    background: rgba(20,30,40,0.85);
-    border: 1px solid #00ffcc;
-    border-radius: 10px;
-    padding: 10px;
-    font-size: 13px;
-    z-index: 10;
-  }
-  select {
-    background: #000;
-    color: #0ff;
-    border: 1px solid #0ff;
-    padding: 4px;
-  }
-  canvas {
-    display: block;
-  }
-</style>
+    <meta charset="UTF-8">
+    <title>Yuuki Theory - 3D Particle Collapse</title>
+    <style>
+        body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', monospace; }
+        #info { position: absolute; top: 20px; left: 20px; color: #7df9ff; pointer-events: none; text-shadow: 0 0 10px #00ffff; }
+        .theory-label { color: #facc15; font-weight: bold; }
+    </style>
 </head>
-
 <body>
+    <div id="info">
+        <h1>YUUKI COLLAPSE 3D</h1>
+        <div id="status">Theory: V14-T/X/N / m0 = 0.36173</div>
+        <div id="particle-data">Generating Universe...</div>
+    </div>
 
-<div id="ui">
-  <div><b>Yuuki Theory</b></div>
-  <div>Scale:</div>
-  <select id="scaleSelect">
-    <option value="cosmic">Cosmic (Universe)</option>
-    <option value="galactic">Galactic</option>
-    <option value="solar">Solar System</option>
-    <option value="atomic">Atomic</option>
-  </select>
-  <div id="status" style="margin-top:6px;color:#ff8080;"></div>
-</div>
-
-<canvas id="canvas"></canvas>
-
-<script>
-/* ===============================
-   Canvas Setup
-================================ */
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
-function resize() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-}
-window.addEventListener("resize", resize);
-resize();
-
-/* ===============================
-   Scale Definitions (Yuuki)
-================================ */
-const scales = {
-  cosmic:   { density: 0.8, fieldStrength: 1.0, rotationSpeed: 1.0 },
-  galactic:{ density: 1.1, fieldStrength: 1.1, rotationSpeed: 1.2 },
-  solar:   { density: 0.4, fieldStrength: 0.6, rotationSpeed: 0.7 },
-  atomic:  { density: 0.9, fieldStrength: 0.3, rotationSpeed: 1.5 }
-};
-
-let currentScale = scales.cosmic;
-
-/* ===============================
-   Particles = Interference Field
-================================ */
-const particles = [];
-const PARTICLE_COUNT = 160;
-
-for (let i = 0; i < PARTICLE_COUNT; i++) {
-  particles.push({
-    x: Math.random() * canvas.width,
-    y: Math.random() * canvas.height,
-    vx: (Math.random() - 0.5) * 1.5,
-    vy: (Math.random() - 0.5) * 1.5
-  });
-}
-
-/* ===============================
-   Black Hole Logic (Core)
-================================ */
-const BH_THRESHOLD = 1.2;
-let blackHoleActive = false;
-
-const BH = {
-  x: () => canvas.width / 2,
-  y: () => canvas.height / 2,
-  radius: 0
-};
-
-function checkBlackHole() {
-  const stress =
-    currentScale.density *
-    currentScale.fieldStrength *
-    currentScale.rotationSpeed;
-  blackHoleActive = stress > BH_THRESHOLD;
-}
-
-/* ===============================
-   Drawing Functions
-================================ */
-function drawParticles() {
-  ctx.fillStyle = "rgba(0,255,255,0.6)";
-  particles.forEach(p => {
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, 1.6, 0, Math.PI * 2);
-    ctx.fill();
-  });
-}
-
-function drawBlackHole(time) {
-  if (!blackHoleActive) return;
-
-  BH.radius = 18 + Math.sin(time * 2) * 4;
-
-  const g = ctx.createRadialGradient(
-    BH.x(), BH.y(), 0,
-    BH.x(), BH.y(), BH.radius
-  );
-  g.addColorStop(0, "rgba(0,0,0,1)");
-  g.addColorStop(0.7, "rgba(20,20,30,0.9)");
-  g.addColorStop(1, "rgba(0,255,255,0.15)");
-
-  ctx.beginPath();
-  ctx.fillStyle = g;
-  ctx.arc(BH.x(), BH.y(), BH.radius, 0, Math.PI * 2);
-  ctx.fill();
-}
-
-/* ===============================
-   Update Loop
-================================ */
-function update(time) {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  checkBlackHole();
-
-  particles.forEach(p => {
-    p.x += p.vx;
-    p.y += p.vy;
-
-    if (blackHoleActive) {
-      p.vx *= 0.93;
-      p.vy *= 0.93;
+    <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.150.1/build/three.module.js"
+        }
     }
+    </script>
 
-    if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
-    if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
-  });
+    <script type="module">
+        import * as THREE from 'three';
 
-  drawParticles();
-  drawBlackHole(time * 0.001);
+        // --- Yuuki Theory Core Logic ---
+        const m0 = 0.36173;
+        const a_tw = 5.677;
+        const b_tw = 2.853;
 
-  document.getElementById("status").textContent =
-    blackHoleActive ? "BLACK HOLE STATE (Structural Collapse)" : "";
+        // 理論質量の簡易計算（3D可視化用）
+        const getTheoryMass = (id) => {
+            if(id === 'e') return m0 * Math.sqrt(2);
+            if(id === 'mu') return m0 * Math.exp(a_tw);
+            if(id === 'tau') return m0 * Math.exp(2*a_tw - b_tw);
+            if(id === 't') return 172690; // Top Quark (Max Mass)
+            return m0;
+        };
 
-  requestAnimationFrame(update);
-}
-requestAnimationFrame(update);
+        const particles = [
+            { name: "Electron", id: 'e', color: 0x00ffff },
+            { name: "Muon", id: 'mu', color: 0x00ff00 },
+            { name: "Tau", id: 'tau', color: 0xff00ff },
+            { name: "Top Quark", id: 't', color: 0xff4500 }
+        ];
 
-/* ===============================
-   UI Control
-================================ */
-document.getElementById("scaleSelect").addEventListener("change", e => {
-  currentScale = scales[e.target.value];
-});
-</script>
+        // --- Scene Setup ---
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
 
+        // 背景の星々
+        const starGeo = new THREE.BufferGeometry();
+        const starCount = 5000;
+        const posArray = new Float32Array(starCount * 3);
+        for(let i=0; i<starCount*3; i++) posArray[i] = (Math.random() - 0.5) * 100;
+        starGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const starMat = new THREE.PointsMaterial({ size: 0.05, color: 0xffffff });
+        const stars = new THREE.Points(starGeo, starMat);
+        scene.add(stars);
+
+        // 中央のCollapseコア
+        const coreGeo = new THREE.SphereGeometry(1, 32, 32);
+        const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true, transparent: true, opacity: 0.3 });
+        const core = new THREE.Mesh(coreGeo, coreMat);
+        scene.add(core);
+
+        camera.position.z = 5;
+
+        // アニメーションループ
+        let frame = 0;
+        let currentIndex = 0;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            frame++;
+
+            // 背景の回転
+            stars.rotation.y += 0.001;
+            core.rotation.y += 0.01;
+            core.rotation.z += 0.01;
+
+            // 粒子のCollapse演出（一定間隔で切り替え）
+            if (frame % 200 === 0) {
+                currentIndex = (currentIndex + 1) % particles.length;
+                const p = particles[currentIndex];
+                const mass = getTheoryMass(p.id);
+                
+                // スケールを質量に基づいて変化（対数スケールで調整）
+                const scale = Math.log10(mass + 1) + 0.5;
+                core.scale.set(scale, scale, scale);
+                core.material.color.setHex(p.color);
+                
+                document.getElementById('particle-data').innerHTML = `
+                    <span class="theory-label">Now Collapsing:</span> ${p.name}<br>
+                    <span class="theory-label">Theoretical Mass:</span> ${mass.toFixed(4)} MeV
+                `;
+            }
+
+            // パルス効果
+            const pulse = 1 + Math.sin(frame * 0.05) * 0.1;
+            core.scale.multiplyScalar(pulse);
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
 </body>
 </html>
+
