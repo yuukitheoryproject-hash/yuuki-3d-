@@ -2,18 +2,20 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Yuuki Theory - 3D Particle Collapse</title>
+    <title>Yuuki Theory - Solar System & Planet Nine</title>
     <style>
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', monospace; }
-        #info { position: absolute; top: 20px; left: 20px; color: #7df9ff; pointer-events: none; text-shadow: 0 0 10px #00ffff; }
-        .theory-label { color: #facc15; font-weight: bold; }
+        #ui { position: absolute; top: 20px; left: 20px; color: #7df9ff; pointer-events: none; text-shadow: 0 0 8px #00ffff; }
+        .planet-label { font-size: 0.9rem; color: #facc15; }
     </style>
 </head>
 <body>
-    <div id="info">
-        <h1>YUUKI COLLAPSE 3D</h1>
-        <div id="status">Theory: V14-T/X/N / m0 = 0.36173</div>
-        <div id="particle-data">Generating Universe...</div>
+    <div id="ui">
+        <h1>YUUKI COLLAPSE: SOLAR SYSTEM</h1>
+        <div id="target-info">Focus: Sun (m0 Calibration)</div>
+        <div style="margin-top:10px; font-size:0.8rem; color:rgba(125,249,255,0.7)">
+            *Distances and speeds are scaled for Theory visualization.
+        </div>
     </div>
 
     <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
@@ -28,91 +30,95 @@
     <script type="module">
         import * as THREE from 'three';
 
-        // --- Yuuki Theory Core Logic ---
-        const m0 = 0.36173;
-        const a_tw = 5.677;
-        const b_tw = 2.853;
-
-        // 理論質量の簡易計算（3D可視化用）
-        const getTheoryMass = (id) => {
-            if(id === 'e') return m0 * Math.sqrt(2);
-            if(id === 'mu') return m0 * Math.exp(a_tw);
-            if(id === 'tau') return m0 * Math.exp(2*a_tw - b_tw);
-            if(id === 't') return 172690; // Top Quark (Max Mass)
-            return m0;
-        };
-
-        const particles = [
-            { name: "Electron", id: 'e', color: 0x00ffff },
-            { name: "Muon", id: 'mu', color: 0x00ff00 },
-            { name: "Tau", id: 'tau', color: 0xff00ff },
-            { name: "Top Quark", id: 't', color: 0xff4500 }
-        ];
-
         // --- Scene Setup ---
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 5000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // 背景の星々
+        // --- Data ---
+        // Yuuki Theoryの質量定規的な比率を意識した配置
+        const planets = [
+            { name: "Mercury", dist: 10, size: 0.4, speed: 0.04, color: 0xaaaaaa },
+            { name: "Venus", dist: 15, size: 0.9, speed: 0.015, color: 0xffcc00 },
+            { name: "Earth", dist: 20, size: 1.0, speed: 0.01, color: 0x2244ff },
+            { name: "Mars", dist: 25, size: 0.5, speed: 0.008, color: 0xff4422 },
+            { name: "Jupiter", dist: 40, size: 3.0, speed: 0.004, color: 0xffaa88 },
+            { name: "Saturn", dist: 55, size: 2.5, speed: 0.002, color: 0xead6b8 },
+            { name: "Uranus", dist: 70, size: 1.5, speed: 0.001, color: 0x88ccff },
+            { name: "Neptune", dist: 85, size: 1.5, speed: 0.0008, color: 0x4466ff },
+            // プラネットナイン: 遠方で特異な軌道を持つ「理論上の収束点」
+            { name: "Planet Nine", dist: 150, size: 1.8, speed: 0.0003, color: 0x6600ff, isP9: true }
+        ];
+
+        // --- Objects ---
+        // 太陽 (世界の中心 - m0)
+        const sunGeo = new THREE.SphereGeometry(4, 32, 32);
+        const sunMat = new THREE.MeshBasicMaterial({ color: 0xffcc00 });
+        const sun = new THREE.Mesh(sunGeo, sunMat);
+        scene.add(sun);
+
+        // 太陽の光
+        const sunLight = new THREE.PointLight(0xffffff, 2, 500);
+        scene.add(sunLight);
+
+        const planetMeshes = [];
+        planets.forEach(p => {
+            // 軌道
+            const orbitGeo = new THREE.RingGeometry(p.dist - 0.1, p.dist + 0.1, 128);
+            const orbitMat = new THREE.MeshBasicMaterial({ color: 0x333333, side: THREE.DoubleSide });
+            const orbit = new THREE.Mesh(orbitGeo, orbitMat);
+            orbit.rotation.x = Math.PI / 2;
+            if (p.isP9) orbit.rotation.x = Math.PI / 2.5; // プラネットナインは傾いている
+            scene.add(orbit);
+
+            // 惑星本体
+            const geo = new THREE.SphereGeometry(p.size, 32, 32);
+            const mat = new THREE.MeshStandardMaterial({ color: p.color });
+            const mesh = new THREE.Mesh(geo, mat);
+            
+            planetMeshes.push({ mesh, data: p, angle: Math.random() * Math.PI * 2 });
+            scene.add(mesh);
+        });
+
+        // 背景の星
         const starGeo = new THREE.BufferGeometry();
-        const starCount = 5000;
+        const starCount = 10000;
         const posArray = new Float32Array(starCount * 3);
-        for(let i=0; i<starCount*3; i++) posArray[i] = (Math.random() - 0.5) * 100;
+        for(let i=0; i<starCount*3; i++) posArray[i] = (Math.random() - 0.5) * 2000;
         starGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-        const starMat = new THREE.PointsMaterial({ size: 0.05, color: 0xffffff });
-        const stars = new THREE.Points(starGeo, starMat);
-        scene.add(stars);
+        const starMat = new THREE.PointsMaterial({ size: 0.7, color: 0xffffff });
+        scene.add(new THREE.Points(starGeo, starMat));
 
-        // 中央のCollapseコア
-        const coreGeo = new THREE.SphereGeometry(1, 32, 32);
-        const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true, transparent: true, opacity: 0.3 });
-        const core = new THREE.Mesh(coreGeo, coreMat);
-        scene.add(core);
+        camera.position.set(0, 100, 150);
+        camera.lookAt(0, 0, 0);
 
-        camera.position.z = 5;
-
-        // アニメーションループ
-        let frame = 0;
-        let currentIndex = 0;
-
+        // --- Animation ---
         function animate() {
             requestAnimationFrame(animate);
-            frame++;
 
-            // 背景の回転
-            stars.rotation.y += 0.001;
-            core.rotation.y += 0.01;
-            core.rotation.z += 0.01;
-
-            // 粒子のCollapse演出（一定間隔で切り替え）
-            if (frame % 200 === 0) {
-                currentIndex = (currentIndex + 1) % particles.length;
-                const p = particles[currentIndex];
-                const mass = getTheoryMass(p.id);
+            planetMeshes.forEach(p => {
+                p.angle += p.data.speed;
+                const x = Math.cos(p.angle) * p.data.dist;
+                const z = Math.sin(p.angle) * p.data.dist;
                 
-                // スケールを質量に基づいて変化（対数スケールで調整）
-                const scale = Math.log10(mass + 1) + 0.5;
-                core.scale.set(scale, scale, scale);
-                core.material.color.setHex(p.color);
-                
-                document.getElementById('particle-data').innerHTML = `
-                    <span class="theory-label">Now Collapsing:</span> ${p.name}<br>
-                    <span class="theory-label">Theoretical Mass:</span> ${mass.toFixed(4)} MeV
-                `;
-            }
+                if (p.data.isP9) {
+                    // 傾いた軌道の計算
+                    p.mesh.position.set(x, z * 0.3, z); 
+                } else {
+                    p.mesh.position.set(x, 0, z);
+                }
+                p.mesh.rotation.y += 0.02;
+            });
 
-            // パルス効果
-            const pulse = 1 + Math.sin(frame * 0.05) * 0.1;
-            core.scale.multiplyScalar(pulse);
-
+            sun.rotation.y += 0.005;
             renderer.render(scene, camera);
         }
 
         animate();
 
+        // Resize
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
@@ -121,4 +127,3 @@
     </script>
 </body>
 </html>
-
